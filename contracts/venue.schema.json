@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Venue",
+  "type": "object",
+  "required": ["id", "name", "floors"],
+  "properties": {
+    "id": {"type": "string"},
+    "name": {"type": "string"},
+    "latitude": {"type": "number"},
+    "longitude": {"type": "number"},
+    "floors": {"type": "array", "items": {"$ref": "#/$defs/floor"}}
+  },
+  "$defs": {
+    "point": {"type": "object", "required": ["x", "y"], "properties": {"x": {"type": "number"}, "y": {"type": "number"}}},
+    "floor": {
+      "type": "object",
+      "required": ["id", "level", "map_version"],
+      "properties": {
+        "id": {"type": "string"},
+        "level": {"type": "integer"},
+        "edge_unit_id": {"type": "string", "description": "Which per-floor hardware unit manages this floor"},
+        "map_version": {"$ref": "#/$defs/map_version"}
+      }
+    },
+    "map_version": {
+      "type": "object",
+      "required": ["version", "state", "width_m", "height_m", "zones", "nodes", "edges"],
+      "properties": {
+        "version": {"type": "integer", "minimum": 1},
+        "state": {"enum": ["draft", "approved", "published"]},
+        "blueprint_asset": {"type": "string"},
+        "scale_m_per_px": {"type": "number", "exclusiveMinimum": 0},
+        "width_m": {"type": "number"},
+        "height_m": {"type": "number"},
+        "zones": {"type": "array", "items": {"$ref": "#/$defs/zone"}},
+        "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+        "edges": {"type": "array", "items": {"$ref": "#/$defs/edge"}}
+      }
+    },
+    "zone": {
+      "type": "object",
+      "required": ["id", "label", "polygon_m"],
+      "properties": {
+        "id": {"type": "string"},
+        "label": {"type": "string"},
+        "polygon_m": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/point"}},
+        "capacity": {"type": "integer", "minimum": 0}
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "label", "kind", "x", "y", "capacity"],
+      "properties": {
+        "id": {"type": "string"},
+        "label": {"type": "string"},
+        "kind": {"enum": ["gate", "junction", "zone", "exit", "facility", "entry", "stairs", "lift"]},
+        "x": {"type": "number"}, "y": {"type": "number"},
+        "capacity": {"type": "integer", "minimum": 0},
+        "zone_id": {"type": "string"}
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["id", "source", "target", "length_m", "width_m", "capacity_per_min"],
+      "properties": {
+        "id": {"type": "string"},
+        "source": {"type": "string"}, "target": {"type": "string"},
+        "length_m": {"type": "number"}, "width_m": {"type": "number"},
+        "capacity_per_min": {"type": "integer"}
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EdgeEvent",
+  "description": "Messages from a per-floor edge unit to the central server. Never contains frames or images.",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["type", "edge_unit_id", "camera_id", "zone_id", "ts", "people"],
+      "properties": {
+        "type": {"const": "camera_observation"},
+        "edge_unit_id": {"type": "string"},
+        "camera_id": {"type": "string"},
+        "zone_id": {"type": "string"},
+        "ts": {"type": "string", "format": "date-time"},
+        "people": {"type": "integer", "minimum": 0},
+        "positions_m": {"type": "array", "description": "Only when the camera is calibrated", "items": {"type": "object", "required": ["x", "y"], "properties": {"x": {"type": "number"}, "y": {"type": "number"}, "conf": {"type": "number"}}}},
+        "map_version": {"type": "integer"},
+        "calibration_version": {"type": "integer"}
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type", "edge_unit_id", "camera_id", "ts", "stream_status"],
+      "properties": {
+        "type": {"const": "camera_status"},
+        "edge_unit_id": {"type": "string"},
+        "camera_id": {"type": "string"},
+        "ts": {"type": "string", "format": "date-time"},
+        "stream_status": {"enum": ["online", "offline", "degraded", "auth_error"]},
+        "fps": {"type": "number"}
+      }
+    }
+  ]
+}
