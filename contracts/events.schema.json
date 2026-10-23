@@ -5,29 +5,147 @@
   "oneOf": [
     {
       "type": "object",
-      "required": ["type", "edge_unit_id", "camera_id", "zone_id", "ts", "people"],
+      "required": [
+        "camera_id",
+        "edge_unit_id",
+        "event_id",
+        "floor_id",
+        "people",
+        "schema_version",
+        "seq",
+        "ts",
+        "type",
+        "venue_id",
+        "zone_id"
+      ],
       "properties": {
-        "type": {"const": "camera_observation"},
-        "edge_unit_id": {"type": "string"},
-        "camera_id": {"type": "string"},
-        "zone_id": {"type": "string"},
-        "ts": {"type": "string", "format": "date-time"},
-        "people": {"type": "integer", "minimum": 0},
-        "positions_m": {"type": "array", "description": "Only when the camera is calibrated", "items": {"type": "object", "required": ["x", "y"], "properties": {"x": {"type": "number"}, "y": {"type": "number"}, "conf": {"type": "number"}}}},
-        "map_version": {"type": "integer"},
-        "calibration_version": {"type": "integer"}
+        "type": {
+          "const": "camera_observation"
+        },
+        "edge_unit_id": {
+          "type": "string"
+        },
+        "camera_id": {
+          "type": "string"
+        },
+        "zone_id": {
+          "type": "string"
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "people": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "positions_m": {
+          "type": "array",
+          "description": "Only when the camera is calibrated",
+          "items": {
+            "type": "object",
+            "required": [
+              "x",
+              "y"
+            ],
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "conf": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "map_version": {
+          "type": "integer"
+        },
+        "calibration_version": {
+          "type": "integer"
+        },
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "event_id": {
+          "type": "string",
+          "description": "UUID; the server drops duplicates"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Per edge unit counter, detects gaps"
+        },
+        "venue_id": {
+          "type": "string"
+        },
+        "floor_id": {
+          "type": "string"
+        }
       }
     },
     {
       "type": "object",
-      "required": ["type", "edge_unit_id", "camera_id", "ts", "stream_status"],
+      "required": [
+        "camera_id",
+        "edge_unit_id",
+        "event_id",
+        "floor_id",
+        "schema_version",
+        "seq",
+        "stream_status",
+        "ts",
+        "type",
+        "venue_id"
+      ],
       "properties": {
-        "type": {"const": "camera_status"},
-        "edge_unit_id": {"type": "string"},
-        "camera_id": {"type": "string"},
-        "ts": {"type": "string", "format": "date-time"},
-        "stream_status": {"enum": ["online", "offline", "degraded", "auth_error"]},
-        "fps": {"type": "number"}
+        "type": {
+          "const": "camera_status"
+        },
+        "edge_unit_id": {
+          "type": "string"
+        },
+        "camera_id": {
+          "type": "string"
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "stream_status": {
+          "enum": [
+            "online",
+            "offline",
+            "degraded",
+            "auth_error"
+          ]
+        },
+        "fps": {
+          "type": "number"
+        },
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "event_id": {
+          "type": "string",
+          "description": "UUID; the server drops duplicates"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Per edge unit counter, detects gaps"
+        },
+        "venue_id": {
+          "type": "string"
+        },
+        "floor_id": {
+          "type": "string"
+        }
       }
     }
   ]

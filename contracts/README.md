@@ -18,3 +18,10 @@
 
 ## Compatibility
 `POST /api/live/observations` (zone_id, camera_id, people, view_area_m2) already exists and keeps working as **v0**. The edge agent should use the `camera_observation` event (v1) once Track B adds the endpoint; B keeps v0 until the web client stops using it.
+
+## Conventions added in v1 review
+- Every schema carries `schema_version` (currently 1). Breaking changes bump it and the git tag (`contracts-v2`).
+- Homography direction: **camera pixel (u, v) -> map metres (x, y)**.
+- `heading_deg`: 0 = +x axis, clockwise as seen on screen (because +y points down).
+- Edge events carry `event_id` (UUID) and a per-unit `seq`. Units buffer offline and may resend, so the server must treat `event_id` as idempotent.
+- Stairs/lifts between floors are `floor_links` on the venue, not edges inside one floor's map.
