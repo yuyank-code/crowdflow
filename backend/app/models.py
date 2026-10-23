@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-NodeKind = Literal["gate","junction","zone","exit","facility"]
+NodeKind = Literal["gate", "junction", "zone", "exit", "facility"]
+
 
 @dataclass
 class Node:
@@ -12,6 +13,7 @@ class Node:
     y: float
     capacity: int
     occupancy: int = 0
+
 
 @dataclass
 class Edge:
@@ -25,6 +27,7 @@ class Edge:
     flow_per_min: float = 0.0
     density: float = 0.0
 
+
 @dataclass
 class Venue:
     id: str
@@ -34,12 +37,16 @@ class Venue:
     nodes: dict[str, Node]
     edges: dict[str, Edge]
 
+
 @dataclass
 class Scenario:
     crowd_size: int = 20000
     arrival_rate: int = 600
     exit_rate: int = 800
-    entry_distribution: dict[str, float] = field(default_factory=lambda: {"gate-e": .55, "gate-w": .30, "gate-s": .15})
+    entry_distribution: dict[str, float] = field(
+        default_factory=lambda: {"gate-e": 0.55, "gate-w": 0.30, "gate-s": 0.15}
+    )
+
 
 @dataclass
 class SimulationState:

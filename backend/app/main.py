@@ -3,15 +3,31 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import (
+    Depends,
+    FastAPI,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
 from .api.routes.geospatial import router as geospatial_router
 from .api.routes.cctv import router as cctv_router
 from .core.config import settings
-from .core.security import (client_ip, geo_limiter, live_limiter, operator_guard, operator_limiter, require_operator, origin_allowed, parse_limiter,
-                            ws_connections)
+from .core.security import (
+    client_ip,
+    geo_limiter,
+    live_limiter,
+    operator_guard,
+    operator_limiter,
+    require_operator,
+    origin_allowed,
+    parse_limiter,
+    ws_connections,
+)
 from .db.database import close_db, init_db
 from .db.repository import history, prune, save_snapshot
 from .live.store import store as live_store
@@ -55,7 +71,7 @@ class ScenarioRequest(BaseModel):
     arrival_rate: int = Field(600, ge=0, le=100000)
     exit_rate: int = Field(800, ge=0, le=100000)
     entry_distribution: dict[str, float] = Field(
-        default_factory=lambda: {"gate-e": .55, "gate-w": .30, "gate-s": .15}
+        default_factory=lambda: {"gate-e": 0.55, "gate-w": 0.30, "gate-s": 0.15}
     )
 
     @field_validator("entry_distribution")
@@ -94,7 +110,10 @@ class ObservationRequest(BaseModel):
     view_area_m2: float = Field(gt=0, le=10000)
 
 
-@app.post("/api/live/observations", dependencies=[Depends(require_operator), Depends(live_limiter)])
+@app.post(
+    "/api/live/observations",
+    dependencies=[Depends(require_operator), Depends(live_limiter)],
+)
 async def post_observation(req: ObservationRequest):
     """A browser (or other detector) reports how many people a registered camera sees in a venue zone."""
     if req.zone_id not in venue.nodes:
@@ -110,19 +129,34 @@ def get_live():
     return {"live": live_store.snapshot()}
 
 
-@app.delete("/api/live/{zone_id}", status_code=204, dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@app.delete(
+    "/api/live/{zone_id}",
+    status_code=204,
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 def clear_live_zone(zone_id: str):
     live_store.forget_zone(zone_id)
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": settings.app_version, "simulation": engine.state.status}
+    return {
+        "status": "ok",
+        "version": settings.app_version,
+        "simulation": engine.state.status,
+    }
 
 
 @app.get("/api/venues")
 def venues():
-    return [{"id": venue.id, "name": venue.name, "latitude": venue.latitude, "longitude": venue.longitude}]
+    return [
+        {
+            "id": venue.id,
+            "name": venue.name,
+            "latitude": venue.latitude,
+            "longitude": venue.longitude,
+        }
+    ]
 
 
 @app.get("/api/venues/{venue_id}")
@@ -138,15 +172,26 @@ def simulation():
 
 
 @app.get("/api/simulation/history")
-async def simulation_history(limit: int = Query(default=50, ge=1, le=500), offset: int = Query(default=0, ge=0, le=1_000_000),
-                             min_risk: float | None = Query(default=None, ge=0, le=100),
-                             risk_level: str | None = Query(default=None, pattern="^(?i:low|moderate|high|critical)$")):
-    return {"items": await history(SIMULATION_ID, limit, offset, min_risk, risk_level), "limit": limit, "offset": offset}
+async def simulation_history(
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0, le=1_000_000),
+    min_risk: float | None = Query(default=None, ge=0, le=100),
+    risk_level: str | None = Query(
+        default=None, pattern="^(?i:low|moderate|high|critical)$"
+    ),
+):
+    return {
+        "items": await history(SIMULATION_ID, limit, offset, min_risk, risk_level),
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @app.post("/api/simulation/scenario", dependencies=operator_guard)
 def set_scenario(req: ScenarioRequest):
-    engine.scenario = Scenario(req.crowd_size, req.arrival_rate, req.exit_rate, req.entry_distribution)
+    engine.scenario = Scenario(
+        req.crowd_size, req.arrival_rate, req.exit_rate, req.entry_distribution
+    )
     engine.reset()
     return engine.snapshot()
 
@@ -189,17 +234,26 @@ def clear_emergency(req: ClearRequest | None = None):
 @app.post("/api/scenarios/parse", dependencies=[Depends(parse_limiter)])
 def parse_scenario(req: TextRequest):
     result = interpret_scenario(req.text)
-    return {"crowd_size": result.crowd_size, "arrival_rate": result.arrival_rate, "exit_rate": result.exit_rate,
-            "entry_distribution": result.entry_distribution,
-            "explanation": "Operator language converted to structured simulation inputs. Risk and routing remain deterministic."}
+    return {
+        "crowd_size": result.crowd_size,
+        "arrival_rate": result.arrival_rate,
+        "exit_rate": result.exit_rate,
+        "entry_distribution": result.entry_distribution,
+        "explanation": "Operator language converted to structured simulation inputs. Risk and routing remain deterministic.",
+    }
 
 
 @app.post("/api/scenarios/interpret", dependencies=[Depends(parse_limiter)])
 def interpret(req: TextRequest):
     result = interpret_scenario(req.text)
-    return {"crowd_size": result.crowd_size, "arrival_rate": result.arrival_rate, "exit_rate": result.exit_rate,
-            "entry_distribution": result.entry_distribution, "assumptions": result.assumptions,
-            "explanation": "Scenario interpretation is deterministic. Safety scoring remains in the risk engine."}
+    return {
+        "crowd_size": result.crowd_size,
+        "arrival_rate": result.arrival_rate,
+        "exit_rate": result.exit_rate,
+        "entry_distribution": result.entry_distribution,
+        "assumptions": result.assumptions,
+        "explanation": "Scenario interpretation is deterministic. Safety scoring remains in the risk engine.",
+    }
 
 
 @app.get("/api/decision-support")
@@ -211,14 +265,17 @@ async def simulation_loop():
     """Tick the engine. Persistence is throttled and failures never stop the simulation."""
     last_saved = 0.0
     while True:
-        await asyncio.sleep(1 / max(.5, settings.simulation_hz))
+        await asyncio.sleep(1 / max(0.5, settings.simulation_hz))
         try:
-            snapshot = engine.tick(.5)
+            snapshot = engine.tick(0.5)
         except Exception:  # keep the loop alive; surface the problem in logs
             log.exception("simulation tick failed")
             continue
         now = time.monotonic()
-        if engine.state.status == "running" and now - last_saved >= settings.snapshot_interval_sec:
+        if (
+            engine.state.status == "running"
+            and now - last_saved >= settings.snapshot_interval_sec
+        ):
             last_saved = now
             try:
                 await save_snapshot(SIMULATION_ID, snapshot)
@@ -240,7 +297,7 @@ async def ws_simulation(ws: WebSocket):
         await ws.accept()
         while True:
             await ws.send_json(full_snapshot())
-            await asyncio.sleep(.5)
+            await asyncio.sleep(0.5)
     except (WebSocketDisconnect, RuntimeError):
         return
     finally:

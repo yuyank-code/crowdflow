@@ -47,9 +47,9 @@ class PublicGeoProvider:
         radius_m = max(100, min(radius_m, settings.geo_max_radius_m))
         await self._throttle()
         query = (
-            f'[out:json][timeout:10];'
-            f'(nwr(around:{radius_m},{lat},{lon})[highway];'
-            f'nwr(around:{radius_m},{lat},{lon})[public_transport];'
+            f"[out:json][timeout:10];"
+            f"(nwr(around:{radius_m},{lat},{lon})[highway];"
+            f"nwr(around:{radius_m},{lat},{lon})[public_transport];"
             f'nwr(around:{radius_m},{lat},{lon})[amenity~"hospital|police|fire_station"];);'
             "out center tags 80;"
         )
@@ -63,7 +63,9 @@ class PublicGeoProvider:
                 data = response.json()
             self._last = time.monotonic()
         except (httpx.HTTPError, ValueError, TypeError) as exc:
-            raise GeoProviderError("geospatial context provider request failed") from exc
+            raise GeoProviderError(
+                "geospatial context provider request failed"
+            ) from exc
 
         features = []
         for element in data.get("elements", []):

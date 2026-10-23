@@ -20,12 +20,22 @@ async def get(camera_id: str) -> Camera | None:
 
 async def get_by_playback_path(path: str) -> Camera | None:
     async with SessionLocal() as s:
-        return (await s.execute(select(Camera).where(Camera.playback_path == path).limit(1))).scalars().first()
+        return (
+            (
+                await s.execute(
+                    select(Camera).where(Camera.playback_path == path).limit(1)
+                )
+            )
+            .scalars()
+            .first()
+        )
 
 
 async def list_all() -> list[Camera]:
     async with SessionLocal() as s:
-        return list((await s.execute(select(Camera).order_by(Camera.created_at))).scalars())
+        return list(
+            (await s.execute(select(Camera).order_by(Camera.created_at))).scalars()
+        )
 
 
 async def save(cam: Camera) -> Camera:
@@ -50,6 +60,15 @@ async def audit(camera_id: str, action: str, detail: str = "") -> None:
 
 async def audit_log(camera_id: str, limit: int = 50) -> list[dict]:
     async with SessionLocal() as s:
-        rows = (await s.execute(select(CameraAudit).where(CameraAudit.camera_id == camera_id)
-                .order_by(CameraAudit.id.desc()).limit(limit))).scalars()
-        return [{"action": r.action, "detail": r.detail, "at": r.at.isoformat()} for r in rows]
+        rows = (
+            await s.execute(
+                select(CameraAudit)
+                .where(CameraAudit.camera_id == camera_id)
+                .order_by(CameraAudit.id.desc())
+                .limit(limit)
+            )
+        ).scalars()
+        return [
+            {"action": r.action, "detail": r.detail, "at": r.at.isoformat()}
+            for r in rows
+        ]

@@ -6,7 +6,12 @@
 import type { Human } from "@vladmandic/human";
 
 export type Box = { x: number; y: number; w: number; h: number; score: number };
-export type Detection = { people: number; boxes: Box[]; videoWidth: number; videoHeight: number };
+export type Detection = {
+  people: number;
+  boxes: Box[];
+  videoWidth: number;
+  videoHeight: number;
+};
 
 let loading: Promise<Human> | null = null;
 
@@ -19,16 +24,30 @@ export function loadDetector(): Promise<Human> {
       const human = new Human({
         modelBasePath: "/models/",
         backend: "webgl",
-        cacheSensitivity: 0,          // run the model on every frame we ask about
+        cacheSensitivity: 0, // run the model on every frame we ask about
         warmup: "none",
         filter: { enabled: false },
-        face: { enabled: false }, body: { enabled: false }, hand: { enabled: false },
-        gesture: { enabled: false }, segmentation: { enabled: false },
-        object: { enabled: true, modelPath: "centernet.json", minConfidence: MIN_CONFIDENCE, iouThreshold: 0.4, maxDetected: 200, skipFrames: 0, skipTime: 0 },
+        face: { enabled: false },
+        body: { enabled: false },
+        hand: { enabled: false },
+        gesture: { enabled: false },
+        segmentation: { enabled: false },
+        object: {
+          enabled: true,
+          modelPath: "centernet.json",
+          minConfidence: MIN_CONFIDENCE,
+          iouThreshold: 0.4,
+          maxDetected: 200,
+          skipFrames: 0,
+          skipTime: 0,
+        },
       });
       await human.load();
       return human;
-    })().catch(e => { loading = null; throw e; });
+    })().catch((e) => {
+      loading = null;
+      throw e;
+    });
   }
   return loading;
 }
@@ -38,9 +57,20 @@ export async function countPeople(video: HTMLVideoElement): Promise<Detection> {
   const human = await loadDetector();
   const result = await human.detect(video);
   const boxes = result.object
-    .filter(o => o.label === "person" && o.score >= MIN_CONFIDENCE)
-    .map(o => ({ x: o.box[0], y: o.box[1], w: o.box[2], h: o.box[3], score: o.score }));
-  return { people: boxes.length, boxes, videoWidth: video.videoWidth, videoHeight: video.videoHeight };
+    .filter((o) => o.label === "person" && o.score >= MIN_CONFIDENCE)
+    .map((o) => ({
+      x: o.box[0],
+      y: o.box[1],
+      w: o.box[2],
+      h: o.box[3],
+      score: o.score,
+    }));
+  return {
+    people: boxes.length,
+    boxes,
+    videoWidth: video.videoWidth,
+    videoHeight: video.videoHeight,
+  };
 }
 
 /** Median of the last few counts: one noisy frame should not flip the risk level. */
