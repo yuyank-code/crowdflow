@@ -71,11 +71,13 @@ def test_no_route_agents_are_stranded_not_lost():
     e = make(crowd_size=500, arrival_rate=600)
     run(e, 10)
     inside_before = e.state.people_inside
-    e.emergency("fire", "j-c")          # cuts the stage/exit corridors
+    e.emergency("fire", "j-c")  # cuts the stage/exit corridors
     run(e, 10)
     snap = e.snapshot()["state"]
     assert snap["stranded_agents"] > 0
-    assert e.state.total_entered - e.state.total_exited == len(e.agents) >= inside_before
+    assert (
+        e.state.total_entered - e.state.total_exited == len(e.agents) >= inside_before
+    )
 
 
 def test_stranded_agents_recover_when_incident_clears():
@@ -95,7 +97,7 @@ def test_clearing_one_incident_keeps_other_closures():
     e.emergency("fire", "j-c")
     e.clear_emergency("j-c")
     assert e.closed_nodes == {"gate-e"}
-    assert e.venue.edges["e-e"].status == "emergency-closed"   # still closed by gate-e
+    assert e.venue.edges["e-e"].status == "emergency-closed"  # still closed by gate-e
     assert e.venue.edges["e-cs"].status != "emergency-closed"  # reopened
     e.clear_emergency()
     assert not any(x.status == "emergency-closed" for x in e.venue.edges.values())
@@ -105,7 +107,10 @@ def test_closed_gate_arrivals_are_redirected_to_open_gates():
     e = make(crowd_size=400, arrival_rate=600)
     e.emergency("gate-failure", "gate-e")
     run(e, 5)
-    assert all(a.node_id != "gate-e" or a.stranded for a in e.agents.values()) or e.snapshot()["state"]["stranded_agents"] == 0
+    assert (
+        all(a.node_id != "gate-e" or a.stranded for a in e.agents.values())
+        or e.snapshot()["state"]["stranded_agents"] == 0
+    )
     assert e.state.total_entered == 400
 
 

@@ -11,6 +11,7 @@ deterministic rules and thresholds as the simulation, from the *camera's own vie
 SAFE_PERSONS_PER_M2 = 2.0 is a planning assumption for comfortable standing density, not a certified standard.
 A zone is reported STALE when no fresh observation arrived within live_stale_after_sec.
 """
+
 from __future__ import annotations
 
 import time
@@ -36,7 +37,9 @@ class LiveStore:
     def __init__(self):
         self._zones: dict[str, Observation] = {}
 
-    def record(self, zone_id: str, camera_id: str, people: int, view_area_m2: float) -> Observation:
+    def record(
+        self, zone_id: str, camera_id: str, people: int, view_area_m2: float
+    ) -> Observation:
         obs = Observation(zone_id, camera_id, people, view_area_m2, time.monotonic())
         self._zones[zone_id] = obs
         return obs
@@ -60,13 +63,23 @@ class LiveStore:
             density = o.people / capacity
             score, level = score_density(density, 0)
             stale = age > settings.live_stale_after_sec
-            out.append({
-                "zone_id": o.zone_id, "camera_id": o.camera_id, "source": "camera-count",
-                "people": o.people, "view_area_m2": o.view_area_m2, "capacity_people": round(capacity, 1),
-                "density": round(density, 3), "density_level": THRESHOLDS.classify(density),
-                "risk_score": score, "risk_level": level,
-                "age_sec": round(age, 1), "stale": stale, "status": "STALE" if stale else "LIVE",
-            })
+            out.append(
+                {
+                    "zone_id": o.zone_id,
+                    "camera_id": o.camera_id,
+                    "source": "camera-count",
+                    "people": o.people,
+                    "view_area_m2": o.view_area_m2,
+                    "capacity_people": round(capacity, 1),
+                    "density": round(density, 3),
+                    "density_level": THRESHOLDS.classify(density),
+                    "risk_score": score,
+                    "risk_level": level,
+                    "age_sec": round(age, 1),
+                    "stale": stale,
+                    "status": "STALE" if stale else "LIVE",
+                }
+            )
         return out
 
 

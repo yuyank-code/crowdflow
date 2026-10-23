@@ -31,7 +31,15 @@ def client():
 
 
 def camera(client):
-    r = client.post("/api/cctv/sources", json={"name": "cam", "source_type": "rtsp", "endpoint": "rtsp://192.0.2.10:554/s"}, headers=KEY)
+    r = client.post(
+        "/api/cctv/sources",
+        json={
+            "name": "cam",
+            "source_type": "rtsp",
+            "endpoint": "rtsp://192.0.2.10:554/s",
+        },
+        headers=KEY,
+    )
     assert r.status_code == 201, r.text
     return r.json()["id"]
 
@@ -43,17 +51,25 @@ def obs(cid, **kw):
 def test_observation_requires_operator_key(client):
     cid = camera(client)
     assert client.post("/api/live/observations", json=obs(cid)).status_code == 401
-    assert client.post("/api/live/observations", json=obs(cid), headers=KEY).status_code == 200
+    assert (
+        client.post("/api/live/observations", json=obs(cid), headers=KEY).status_code
+        == 200
+    )
 
 
 def test_live_zone_appears_in_snapshot_separately_from_simulation(client):
     cid = camera(client)
     client.post("/api/live/observations", json=obs(cid, people=10), headers=KEY)
     snap = client.get("/api/simulation").json()
-    assert "state" in snap and "nodes" in snap                       # simulation untouched
+    assert "state" in snap and "nodes" in snap  # simulation untouched
     (z,) = snap["live"]
-    assert z["zone_id"] == "gate-e" and z["people"] == 10 and z["source"] == "camera-count" and z["status"] == "LIVE"
-    assert z["capacity_people"] == 40.0 and z["density"] == 0.25      # 20 m2 * 2 persons/m2
+    assert (
+        z["zone_id"] == "gate-e"
+        and z["people"] == 10
+        and z["source"] == "camera-count"
+        and z["status"] == "LIVE"
+    )
+    assert z["capacity_people"] == 40.0 and z["density"] == 0.25  # 20 m2 * 2 persons/m2
 
 
 def test_risk_uses_deterministic_thresholds(client):
@@ -62,16 +78,32 @@ def test_risk_uses_deterministic_thresholds(client):
     for people in (0, 20, 30, 40, 80):
         client.post("/api/live/observations", json=obs(cid, people=people), headers=KEY)
         levels[people] = client.get("/api/live").json()["live"][0]["density_level"]
-    assert levels == {0: "LOW", 20: "MODERATE", 30: "HIGH", 40: "CRITICAL", 80: "CRITICAL"}
+    assert levels == {
+        0: "LOW",
+        20: "MODERATE",
+        30: "HIGH",
+        40: "CRITICAL",
+        80: "CRITICAL",
+    }
     z = client.get("/api/live").json()["live"][0]
     assert z["risk_level"] == "CRITICAL" and z["risk_score"] == 100.0
 
 
 def test_validation(client):
     cid = camera(client)
-    bad = [obs(cid, zone_id="nope"), obs("no-such-camera"), obs(cid, people=-1), obs(cid, people=99999),
-           obs(cid, view_area_m2=0), obs(cid, view_area_m2=-5), obs(cid, people="many")]
-    codes = [client.post("/api/live/observations", json=b, headers=KEY).status_code for b in bad]
+    bad = [
+        obs(cid, zone_id="nope"),
+        obs("no-such-camera"),
+        obs(cid, people=-1),
+        obs(cid, people=99999),
+        obs(cid, view_area_m2=0),
+        obs(cid, view_area_m2=-5),
+        obs(cid, people="many"),
+    ]
+    codes = [
+        client.post("/api/live/observations", json=b, headers=KEY).status_code
+        for b in bad
+    ]
     assert codes == [404, 404, 422, 422, 422, 422, 422]
     assert client.get("/api/live").json()["live"] == []
 
@@ -98,9 +130,14 @@ def test_deleting_camera_or_zone_clears_live_data(client):
 def test_observation_rate_limit_is_separate_from_operator_limit(client, monkeypatch):
     cid = camera(client)
     monkeypatch.setattr(settings, "rate_limit_live", 3)
-    codes = [client.post("/api/live/observations", json=obs(cid), headers=KEY).status_code for _ in range(5)]
+    codes = [
+        client.post("/api/live/observations", json=obs(cid), headers=KEY).status_code
+        for _ in range(5)
+    ]
     assert codes == [200, 200, 200, 429, 429]
-    assert client.post("/api/simulation/pause", headers=KEY).status_code == 200   # operator bucket unaffected
+    assert (
+        client.post("/api/simulation/pause", headers=KEY).status_code == 200
+    )  # operator bucket unaffected
 
 
 def test_websocket_stream_includes_live_zones(client):

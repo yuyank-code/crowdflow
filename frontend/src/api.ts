@@ -10,19 +10,40 @@ export function wsUrl(): string {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
   }
 }
 
 const KEY_STORAGE = "crowdflow.operatorKey";
 // sessionStorage keeps the key only for this tab; it can throw in private/blocked contexts.
-const getKey = (): string => { try { return sessionStorage.getItem(KEY_STORAGE) ?? ""; } catch { return ""; } };
-const setKey = (k: string) => { try { k ? sessionStorage.setItem(KEY_STORAGE, k) : sessionStorage.removeItem(KEY_STORAGE); } catch { /* ignore */ } };
+const getKey = (): string => {
+  try {
+    return sessionStorage.getItem(KEY_STORAGE) ?? "";
+  } catch {
+    return "";
+  }
+};
+const setKey = (k: string) => {
+  try {
+    k
+      ? sessionStorage.setItem(KEY_STORAGE, k)
+      : sessionStorage.removeItem(KEY_STORAGE);
+  } catch {
+    /* ignore */
+  }
+};
 
 /** Operator key for this browser tab (sessionStorage; never localStorage or env files). */
-export function setOperatorKey(k: string) { if (k) setKey(k); }  // empty input must not wipe a stored key
-export function hasOperatorKey() { return getKey().length > 0; }
+export function setOperatorKey(k: string) {
+  if (k) setKey(k);
+} // empty input must not wipe a stored key
+export function hasOperatorKey() {
+  return getKey().length > 0;
+}
 
 const FRIENDLY: Record<string, string> = {
   operator_key_required: "Operator key missing or incorrect.",
@@ -31,13 +52,21 @@ const FRIENDLY: Record<string, string> = {
 
 /** JSON request that turns HTTP/network failures into readable ApiErrors.
  *  State-changing calls send the operator key; on 401 the operator is asked for it once and the call retried. */
-export async function request<T = unknown>(path: string, init?: RequestInit, retried = false): Promise<T> {
+export async function request<T = unknown>(
+  path: string,
+  init?: RequestInit,
+  retried = false,
+): Promise<T> {
   let res: Response;
   const key = getKey();
   try {
     res = await fetch(API + path, {
       ...init,
-      headers: { "Content-Type": "application/json", ...(key ? { "X-API-Key": key } : {}), ...(init?.headers ?? {}) },
+      headers: {
+        "Content-Type": "application/json",
+        ...(key ? { "X-API-Key": key } : {}),
+        ...(init?.headers ?? {}),
+      },
     });
   } catch {
     throw new ApiError(0, "Cannot reach the backend. Is it running?");
@@ -49,14 +78,17 @@ export async function request<T = unknown>(path: string, init?: RequestInit, ret
       return request<T>(path, init, true);
     }
   }
-  if (res.status === 401) setKey("");  // wrong key: forget it
+  if (res.status === 401) setKey(""); // wrong key: forget it
   if (!res.ok) {
     let detail = `Request failed (${res.status})`;
     try {
       const body = await res.json();
       if (typeof body.detail === "string") detail = body.detail;
-      else if (Array.isArray(body.detail)) detail = body.detail.map((d: { msg: string }) => d.msg).join("; ");
-    } catch { /* non-JSON error body */ }
+      else if (Array.isArray(body.detail))
+        detail = body.detail.map((d: { msg: string }) => d.msg).join("; ");
+    } catch {
+      /* non-JSON error body */
+    }
     throw new ApiError(res.status, FRIENDLY[detail] ?? detail);
   }
   if (res.status === 204) return undefined as T;

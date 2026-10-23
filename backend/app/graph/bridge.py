@@ -52,9 +52,7 @@ def sync_venue_to_graph(
         edge.flow = source.flow_per_min
         edge.density = source.density
         edge.status = source.status
-        edge.disabled = (
-            source.source in closed_nodes or source.target in closed_nodes
-        )
+        edge.disabled = source.source in closed_nodes or source.target in closed_nodes
 
 
 def sync_graph_to_venue(venue: Venue, graph: VenueGraph) -> None:

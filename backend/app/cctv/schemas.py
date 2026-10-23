@@ -52,7 +52,7 @@ class CameraOut(BaseModel):
     name: str
     source_type: SourceType
     zone_id: str | None
-    endpoint_host: str | None          # host:port only; paths/query may embed tokens
+    endpoint_host: str | None  # host:port only; paths/query may embed tokens
     status: str
     last_seen_at: datetime | None
     last_error_code: str | None

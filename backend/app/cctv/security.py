@@ -1,4 +1,5 @@
 """Endpoint validation (SSRF guard), credential encryption, playback tokens."""
+
 from __future__ import annotations
 
 import base64
@@ -56,7 +57,9 @@ def _in_allowlist(host: str, ip: ipaddress._BaseAddress) -> bool:
 
 def resolve_safe(host: str, port: int) -> str:
     """Resolve host and return one vetted IP. Call again at connect time to limit DNS-rebinding."""
-    if host.lower() in BLOCKED_HOSTNAMES and not (settings.cctv_allow_loopback and host.lower() == "localhost"):
+    if host.lower() in BLOCKED_HOSTNAMES and not (
+        settings.cctv_allow_loopback and host.lower() == "localhost"
+    ):
         raise EndpointRejected("hostname is not allowed")
     try:
         infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
@@ -85,7 +88,9 @@ def validate_endpoint(source_type: str, url: str) -> str:
     if parts.scheme.lower() not in schemes:
         raise EndpointRejected(f"scheme must be one of: {', '.join(sorted(schemes))}")
     if parts.username or parts.password:
-        raise EndpointRejected("do not put credentials in the URL; use the username/password fields")
+        raise EndpointRejected(
+            "do not put credentials in the URL; use the username/password fields"
+        )
     if not parts.hostname:
         raise EndpointRejected("endpoint has no host")
     try:
@@ -103,11 +108,15 @@ def _fernet() -> Fernet:
     try:
         return Fernet(settings.cctv_secret_key.encode())
     except (ValueError, TypeError) as exc:
-        raise SecretStorageUnavailable("CCTV_SECRET_KEY is not a valid Fernet key") from exc
+        raise SecretStorageUnavailable(
+            "CCTV_SECRET_KEY is not a valid Fernet key"
+        ) from exc
 
 
 def encrypt_credentials(username: str, password: str) -> str:
-    return _fernet().encrypt(json.dumps({"u": username, "p": password}).encode()).decode()
+    return (
+        _fernet().encrypt(json.dumps({"u": username, "p": password}).encode()).decode()
+    )
 
 
 def decrypt_credentials(token: str | None) -> tuple[str, str] | None:
@@ -121,11 +130,17 @@ def decrypt_credentials(token: str | None) -> tuple[str, str] | None:
 
 
 # ---- playback tokens -----------------------------------------------------
-def make_playback_token(camera_id: str, path: str, ttl: int | None = None) -> tuple[str, int]:
+def make_playback_token(
+    camera_id: str, path: str, ttl: int | None = None
+) -> tuple[str, int]:
     if not settings.playback_signing_key:
         raise SecretStorageUnavailable("PLAYBACK_SIGNING_KEY is not configured")
     exp = int(time.time()) + (ttl or settings.playback_token_ttl_sec)
-    mac = hmac.new(settings.playback_signing_key.encode(), f"{camera_id}|{path}|{exp}".encode(), hashlib.sha256).digest()
+    mac = hmac.new(
+        settings.playback_signing_key.encode(),
+        f"{camera_id}|{path}|{exp}".encode(),
+        hashlib.sha256,
+    ).digest()
     return f"{exp}.{base64.urlsafe_b64encode(mac).decode().rstrip('=')}", exp
 
 
@@ -138,6 +153,10 @@ def verify_playback_token(camera_id: str, path: str, token: str) -> bool:
         return False
     if exp < time.time() or not settings.playback_signing_key:
         return False
-    mac = hmac.new(settings.playback_signing_key.encode(), f"{camera_id}|{path}|{exp}".encode(), hashlib.sha256).digest()
+    mac = hmac.new(
+        settings.playback_signing_key.encode(),
+        f"{camera_id}|{path}|{exp}".encode(),
+        hashlib.sha256,
+    ).digest()
     expected = f"{exp}.{base64.urlsafe_b64encode(mac).decode().rstrip('=')}"
     return hmac.compare_digest(expected, token)

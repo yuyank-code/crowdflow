@@ -8,7 +8,11 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from app.cctv import manager, repository as repo, streams
 from app.cctv.schemas import CameraCreate, CameraUpdate, PtzCommand
-from app.cctv.security import EndpointRejected, SecretStorageUnavailable, verify_playback_token
+from app.cctv.security import (
+    EndpointRejected,
+    SecretStorageUnavailable,
+    verify_playback_token,
+)
 from app.cctv.service import CCTVAdapterError, health, source_catalog
 from app.core.config import settings
 from app.live.store import store as live_store
@@ -44,8 +48,12 @@ def _config_items() -> list[dict]:
 @router.get("/sources")
 async def sources():
     registered = [manager.to_out(c) for c in await repo.list_all()]
-    return {"items": _config_items() + registered, "policy": "Only operator-configured or operator-registered sources are used.",
-            "gateway_configured": streams.gateway_configured(), "operator_auth_configured": bool(settings.operator_api_key)}
+    return {
+        "items": _config_items() + registered,
+        "policy": "Only operator-configured or operator-registered sources are used.",
+        "gateway_configured": streams.gateway_configured(),
+        "operator_auth_configured": bool(settings.operator_api_key),
+    }
 
 
 @router.get("/sources/{source_id}")
@@ -63,7 +71,13 @@ async def source_detail(source_id: str):
 async def source_health(source_id: str):
     cam = await repo.get(source_id)
     if cam:  # stored status from the last explicit test; no probing on a read
-        return {"id": cam.id, "status": cam.status, "last_seen_at": cam.last_seen_at, "last_error_code": cam.last_error_code, "probed": False}
+        return {
+            "id": cam.id,
+            "status": cam.status,
+            "last_seen_at": cam.last_seen_at,
+            "last_error_code": cam.last_error_code,
+            "probed": False,
+        }
     try:
         return await health(source_id)
     except CCTVAdapterError as exc:
@@ -71,7 +85,11 @@ async def source_health(source_id: str):
 
 
 # ---- registration / management (operator key required) ----------------------
-@router.post("/sources", status_code=201, dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@router.post(
+    "/sources",
+    status_code=201,
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 async def register_camera(req: CameraCreate):
     try:
         cam = await manager.register(req)
@@ -82,7 +100,10 @@ async def register_camera(req: CameraCreate):
     return manager.to_out(cam)
 
 
-@router.patch("/sources/{source_id}", dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@router.patch(
+    "/sources/{source_id}",
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 async def update_camera(source_id: str, req: CameraUpdate):
     cam = await _camera(source_id)
     changes = req.model_dump(exclude_unset=True)
@@ -93,7 +114,11 @@ async def update_camera(source_id: str, req: CameraUpdate):
     return manager.to_out(cam)
 
 
-@router.delete("/sources/{source_id}", status_code=204, dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@router.delete(
+    "/sources/{source_id}",
+    status_code=204,
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 async def delete_camera(source_id: str):
     cam = await _camera(source_id)
     streams.stop(cam.id)
@@ -102,7 +127,10 @@ async def delete_camera(source_id: str):
     await repo.audit(cam.id, "delete", cam.name)
 
 
-@router.post("/sources/{source_id}/test", dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@router.post(
+    "/sources/{source_id}/test",
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 async def test_camera(source_id: str):
     cam = await _camera(source_id)
     cam, result = await manager.run_test(cam)
@@ -110,7 +138,10 @@ async def test_camera(source_id: str):
 
 
 # ---- streams / playback ----------------------------------------------------
-@router.post("/sources/{source_id}/stream/start", dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@router.post(
+    "/sources/{source_id}/stream/start",
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 async def start_stream(source_id: str):
     cam = await _camera(source_id)
     if cam.source_type == "usb":
@@ -126,7 +157,10 @@ async def start_stream(source_id: str):
     return manager.to_out(cam)
 
 
-@router.post("/sources/{source_id}/stream/stop", dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@router.post(
+    "/sources/{source_id}/stream/stop",
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 async def stop_stream(source_id: str):
     cam = await _camera(source_id)
     streams.stop(cam.id)
@@ -134,7 +168,10 @@ async def stop_stream(source_id: str):
     return manager.to_out(cam)
 
 
-@router.get("/sources/{source_id}/playback", dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@router.get(
+    "/sources/{source_id}/playback",
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 async def playback(source_id: str):
     cam = await _camera(source_id)
     try:
@@ -146,23 +183,33 @@ async def playback(source_id: str):
 
 
 # ---- capability-gated controls ----------------------------------------------
-@router.post("/sources/{source_id}/snapshot", dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@router.post(
+    "/sources/{source_id}/snapshot",
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 async def snapshot(source_id: str):
     cam = await _camera(source_id)
     await repo.audit(cam.id, "snapshot_attempt")
     if not manager.capabilities(cam)["snapshot"]:
-        raise HTTPException(409, "capability_unsupported: snapshot is not implemented for this camera type")
+        raise HTTPException(
+            409,
+            "capability_unsupported: snapshot is not implemented for this camera type",
+        )
     raise HTTPException(501, "not_implemented")
 
 
-@router.post("/sources/{source_id}/ptz", dependencies=[Depends(require_operator), Depends(operator_limiter)])
+@router.post(
+    "/sources/{source_id}/ptz",
+    dependencies=[Depends(require_operator), Depends(operator_limiter)],
+)
 async def ptz(source_id: str, cmd: PtzCommand):
     cam = await _camera(source_id)
     await repo.audit(cam.id, "ptz_attempt", cmd.action)
     if not manager.capabilities(cam)["ptz"]:
-        raise HTTPException(409, "capability_unsupported: PTZ is not available for this camera")
+        raise HTTPException(
+            409, "capability_unsupported: PTZ is not available for this camera"
+        )
     raise HTTPException(501, "not_implemented")
-
 
 
 # ---- media gateway auth hook --------------------------------------------------
@@ -183,9 +230,13 @@ async def gateway_auth(request: Request):
     if body.get("action") == "publish":
         # Only a local publisher that knows the configured credentials may send video in (laptop webcam mode).
         user, pw = settings.gateway_publish_user, settings.gateway_publish_password
-        ok = (bool(user) and bool(pw) and body.get("protocol") == "rtsp"
-              and hmac.compare_digest(str(body.get("user") or ""), user)
-              and hmac.compare_digest(str(body.get("password") or ""), pw))
+        ok = (
+            bool(user)
+            and bool(pw)
+            and body.get("protocol") == "rtsp"
+            and hmac.compare_digest(str(body.get("user") or ""), user)
+            and hmac.compare_digest(str(body.get("password") or ""), pw)
+        )
         if not ok:
             raise HTTPException(401, "publish_not_allowed")
         return {"ok": True}
@@ -194,6 +245,11 @@ async def gateway_auth(request: Request):
     path = str(body.get("path") or "")
     tokens = parse_qs(str(body.get("query") or "")).get("token", [])
     cam = await repo.get_by_playback_path(path) if path else None
-    if not cam or not streams.may_play(cam.id) or not tokens or not verify_playback_token(cam.id, path, tokens[0]):
+    if (
+        not cam
+        or not streams.may_play(cam.id)
+        or not tokens
+        or not verify_playback_token(cam.id, path, tokens[0])
+    ):
         raise HTTPException(401, "invalid_playback_token")
     return {"ok": True}

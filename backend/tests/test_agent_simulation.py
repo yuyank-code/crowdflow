@@ -32,7 +32,6 @@ def test_snapshot_exposes_graph_and_agent_metrics():
     assert "reroutes" in snapshot["state"]
 
 
-
 def test_exited_agents_update_population_counts():
     engine = CrowdEngine(build_demo_venue())
     engine.start()

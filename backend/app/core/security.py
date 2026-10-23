@@ -7,6 +7,7 @@ Design:
 * Expensive or third-party-facing routes are rate limited per client.
 * The WebSocket only accepts browser connections from allowed origins.
 """
+
 import hmac
 import logging
 import time
@@ -35,8 +36,11 @@ def require_operator(request: Request) -> None:
         return
     supplied = request.headers.get("x-api-key", "")
     if not hmac.compare_digest(supplied.encode(), expected.encode()):
-        raise HTTPException(status_code=401, detail="operator_key_required",
-                            headers={"WWW-Authenticate": "ApiKey"})
+        raise HTTPException(
+            status_code=401,
+            detail="operator_key_required",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
 
 
 class RateLimiter:
@@ -58,10 +62,16 @@ class RateLimiter:
             q.popleft()
         if len(q) >= limit:
             retry = max(1, int(window - (now - q[0])) + 1)
-            raise HTTPException(status_code=429, detail="rate_limited", headers={"Retry-After": str(retry)})
+            raise HTTPException(
+                status_code=429,
+                detail="rate_limited",
+                headers={"Retry-After": str(retry)},
+            )
         q.append(now)
         if len(self.hits) > 10_000:  # bound memory: drop idle clients
-            for ip in [k for k, v in self.hits.items() if not v or now - v[-1] >= window]:
+            for ip in [
+                k for k, v in self.hits.items() if not v or now - v[-1] >= window
+            ]:
                 del self.hits[ip]
 
     def reset(self) -> None:
@@ -78,12 +88,16 @@ operator_guard = [Depends(require_operator), Depends(operator_limiter)]
 
 def origin_allowed(ws: WebSocket) -> bool:
     origin = ws.headers.get("origin")
-    if origin is None:  # non-browser client (curl, scripts); browsers always send Origin
+    if (
+        origin is None
+    ):  # non-browser client (curl, scripts); browsers always send Origin
         return True
     if origin in settings.cors_origins or "*" in settings.cors_origins:
         return True
     host = ws.headers.get("host", "")
-    return origin.split("://", 1)[-1] == host  # same-origin (e.g. behind the nginx proxy)
+    return (
+        origin.split("://", 1)[-1] == host
+    )  # same-origin (e.g. behind the nginx proxy)
 
 
 class WsConnections:
@@ -94,7 +108,10 @@ class WsConnections:
         self.per_ip: dict[str, int] = defaultdict(int)
 
     def acquire(self, ip: str) -> bool:
-        if self.total >= settings.ws_max_connections or self.per_ip[ip] >= settings.ws_max_per_ip:
+        if (
+            self.total >= settings.ws_max_connections
+            or self.per_ip[ip] >= settings.ws_max_per_ip
+        ):
             return False
         self.total += 1
         self.per_ip[ip] += 1

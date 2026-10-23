@@ -19,20 +19,34 @@ def interpret(text: str) -> ScenarioInterpretation:
     crowd = 20_000
     unit_re = r"(?:\s*(million|thousand|m|k)\b)?"
     # prefer a number directly followed by a people-word; fall back to the first number with a unit
-    m = (re.search(r"(\d+(?:\.\d+)?)" + unit_re + r"\s*(?:people|persons|attendees|fans|guests|crowd)\b", t)
-         or re.search(r"(\d+(?:\.\d+)?)\s*(million|thousand|m|k)\b", t))
+    m = re.search(
+        r"(\d+(?:\.\d+)?)"
+        + unit_re
+        + r"\s*(?:people|persons|attendees|fans|guests|crowd)\b",
+        t,
+    ) or re.search(r"(\d+(?:\.\d+)?)\s*(million|thousand|m|k)\b", t)
     if m:
         value = float(m.group(1))
         unit = m.group(2) or ""
-        if unit in ("million", "m"): value *= 1_000_000
-        elif unit in ("thousand", "k"): value *= 1_000
+        if unit in ("million", "m"):
+            value *= 1_000_000
+        elif unit in ("thousand", "k"):
+            value *= 1_000
         crowd = max(0, min(1_000_000, int(value)))
     arrival = _rate(t, r"(?:arriv(?:al|ing)|entry|entering)[^0-9]{0,20}(\d+)", 600)
     exit_rate = _rate(t, r"(?:exit|exiting|leav(?:e|ing))[^0-9]{0,20}(\d+)", 800)
-    distribution = {"gate-e": .55, "gate-w": .30, "gate-s": .15}
-    assumptions = ["Risk and routing are calculated separately by deterministic simulation engines."]
-    if "west" in t: assumptions.append("West Gate is explicitly mentioned; default entry mix is retained.")
-    if "east" in t: assumptions.append("East Gate is explicitly mentioned; default entry mix is retained.")
+    distribution = {"gate-e": 0.55, "gate-w": 0.30, "gate-s": 0.15}
+    assumptions = [
+        "Risk and routing are calculated separately by deterministic simulation engines."
+    ]
+    if "west" in t:
+        assumptions.append(
+            "West Gate is explicitly mentioned; default entry mix is retained."
+        )
+    if "east" in t:
+        assumptions.append(
+            "East Gate is explicitly mentioned; default entry mix is retained."
+        )
     return ScenarioInterpretation(crowd, arrival, exit_rate, distribution, assumptions)
 
 
@@ -53,6 +67,11 @@ def explain(snapshot: dict) -> dict:
         action = "Prioritize the listed bottlenecks and compare alternative routes before increasing inflow."
     else:
         action = "Continue monitoring inflow, corridor density, and exits; no deterministic bottleneck is currently flagged."
-    return {"risk_level": level, "risk_score": risk, "bottlenecks": bottlenecks,
-            "active_incidents": incidents[-5:], "operator_action": action,
-            "safety_note": "This explanation summarizes deterministic engine output; it does not create or override safety scores."}
+    return {
+        "risk_level": level,
+        "risk_score": risk,
+        "bottlenecks": bottlenecks,
+        "active_incidents": incidents[-5:],
+        "operator_action": action,
+        "safety_note": "This explanation summarizes deterministic engine output; it does not create or override safety scores.",
+    }
