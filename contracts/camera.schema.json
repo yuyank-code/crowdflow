@@ -3,25 +3,134 @@
   "title": "CameraPlacement",
   "description": "Placement + calibration data layered on the existing camera registration (backend/app/cctv).",
   "type": "object",
-  "required": ["camera_id", "venue_id", "floor_id", "position_m", "calibration_status"],
+  "required": [
+    "calibration_status",
+    "camera_id",
+    "floor_id",
+    "position_m",
+    "schema_version",
+    "venue_id"
+  ],
   "properties": {
-    "camera_id": {"type": "string"},
-    "venue_id": {"type": "string"},
-    "floor_id": {"type": "string"},
-    "position_m": {"type": "object", "required": ["x", "y"], "properties": {"x": {"type": "number"}, "y": {"type": "number"}}},
-    "heading_deg": {"type": "number", "description": "0 = +x axis, clockwise positive in map space"},
-    "coverage_polygon_m": {"type": "array", "items": {"type": "object", "required": ["x", "y"], "properties": {"x": {"type": "number"}, "y": {"type": "number"}}}},
-    "zone_ids": {"type": "array", "items": {"type": "string"}},
-    "calibration_status": {"enum": ["none", "needs_recalibration", "calibrated"]},
+    "camera_id": {
+      "type": "string"
+    },
+    "venue_id": {
+      "type": "string"
+    },
+    "floor_id": {
+      "type": "string"
+    },
+    "position_m": {
+      "type": "object",
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
+    },
+    "heading_deg": {
+      "type": "number",
+      "description": "0 = +x axis. Positive = clockwise as seen on screen (y points down)."
+    },
+    "coverage_polygon_m": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "x",
+          "y"
+        ],
+        "properties": {
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "zone_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "calibration_status": {
+      "enum": [
+        "none",
+        "needs_recalibration",
+        "calibrated"
+      ]
+    },
     "calibration": {
       "type": "object",
       "properties": {
-        "version": {"type": "integer"},
-        "map_version": {"type": "integer"},
-        "homography": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}}},
-        "reprojection_error_m": {"type": "number"},
-        "point_pairs": {"type": "array", "items": {"type": "object", "required": ["u", "v", "x", "y"], "properties": {"u": {"type": "number"}, "v": {"type": "number"}, "x": {"type": "number"}, "y": {"type": "number"}, "held_out": {"type": "boolean"}}}}
+        "version": {
+          "type": "integer"
+        },
+        "map_version": {
+          "type": "integer"
+        },
+        "homography": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number"
+            }
+          },
+          "description": "3x3 matrix H mapping camera pixel (u, v) -> map metres (x, y): [x, y, 1] ~ H [u, v, 1]."
+        },
+        "reprojection_error_m": {
+          "type": "number"
+        },
+        "point_pairs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "u",
+              "v",
+              "x",
+              "y"
+            ],
+            "properties": {
+              "u": {
+                "type": "number"
+              },
+              "v": {
+                "type": "number"
+              },
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "held_out": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
       }
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1
     }
   }
 }
